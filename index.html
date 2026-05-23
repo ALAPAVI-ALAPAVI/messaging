@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dev Workspace IDE</title>
+    <!-- Include PeerJS Client library for real-time P2P communication -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -35,20 +37,39 @@
             color: #858585;
             border-bottom: 1px solid #3c3c3c;
             display: flex;
-            gap: 20px;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .tab {
+        .tabs { display: flex; gap: 20px; }
+        .tab { color: #fff; border-bottom: 1px solid #007acc; padding-bottom: 4px; }
+
+        /* Hidden Peer Connection Panel inside Header */
+        .p2p-setup {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            font-size: 11px;
+        }
+        .p2p-setup input {
+            background: #1e1e1e;
+            border: 1px solid #444;
             color: #fff;
-            border-bottom: 1px solid #007acc;
-            padding-bottom: 4px;
-            cursor: default;
+            padding: 2px 6px;
+            font-size: 11px;
+            outline: none;
+        }
+        .p2p-setup button {
+            background: #007acc;
+            color: #fff;
+            border: none;
+            padding: 2px 8px;
+            cursor: pointer;
         }
 
         .editor-workspace {
             display: flex;
             flex: 1;
-            position: relative;
         }
 
         .line-numbers {
@@ -73,12 +94,11 @@
             font-size: 14px;
             line-height: 1.5;
             resize: none;
-            tab-size: 4;
         }
 
         /* --- STAGE 2: PASSCODE GATEWAY --- */
         #lock-screen {
-            display: none; /* Triggered only by specific string */
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
@@ -90,36 +110,13 @@
             z-index: 9999;
         }
 
-        .auth-container {
-            text-align: center;
-            width: 280px;
-        }
-
-        .auth-container label {
-            display: block;
-            font-size: 12px;
-            color: #6a9955; /* Comment green style */
-            margin-bottom: 12px;
-        }
-
+        .auth-container { text-align: center; width: 280px; }
+        .auth-container label { display: block; font-size: 12px; color: #6a9955; margin-bottom: 12px; }
         .passcode-input {
-            width: 100%;
-            padding: 10px;
-            text-align: center;
-            font-size: 16px;
-            background-color: #2d2d2d;
-            border: 1px solid #3c3c3c;
-            color: #ce9178;
-            border-radius: 4px;
-            outline: none;
+            width: 100%; padding: 10px; text-align: center; font-size: 16px;
+            background-color: #2d2d2d; border: 1px solid #3c3c3c; color: #ce9178; border-radius: 4px; outline: none;
         }
-
-        .error-msg {
-            font-size: 11px;
-            color: #f44747;
-            margin-top: 8px;
-            visibility: hidden;
-        }
+        .error-msg { font-size: 11px; color: #f44747; margin-top: 8px; visibility: hidden; }
 
         /* --- STAGE 3: CHAT VIEW --- */
         #app-container {
@@ -130,144 +127,57 @@
             background-color: #252526;
         }
 
-        .sidebar {
-            background-color: #2d2d2d;
-            border-right: 1px solid #3c3c3c;
-            display: flex;
-            flex-direction: column;
-        }
+        .sidebar { background-color: #2d2d2d; border-right: 1px solid #3c3c3c; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 16px; border-bottom: 1px solid #3c3c3c; font-size: 11px; color: #858585; }
+        .list-item { padding: 10px 16px; font-size: 13px; color: #cccccc; }
+        .list-item.active { background-color: #37373d; color: #fff; }
 
-        .sidebar-header {
-            padding: 16px;
-            border-bottom: 1px solid #3c3c3c;
-            font-size: 11px;
-            color: #858585;
-        }
-
-        .list-container {
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .list-item {
-            padding: 10px 16px;
-            font-size: 13px;
-            color: #cccccc;
-            cursor: pointer;
-        }
-
-        .list-item.active {
-            background-color: #37373d;
-            color: #fff;
-        }
-
-        .workspace {
-            display: flex;
-            flex-direction: column;
-            background-color: #1e1e1e;
-        }
-
+        .workspace { display: flex; flex-direction: column; background-color: #1e1e1e; }
         .workspace-header {
-            padding: 12px 20px;
-            border-bottom: 1px solid #3c3c3c;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #2d2d2d;
+            padding: 12px 20px; border-bottom: 1px solid #3c3c3c;
+            display: flex; justify-content: space-between; align-items: center; background-color: #2d2d2d;
         }
-
-        .workspace-title {
-            font-size: 13px;
-            color: #cccccc;
-        }
-
+        .workspace-title { font-size: 13px; color: #cccccc; }
         .lock-btn {
-            background: none;
-            border: 1px solid #444;
-            padding: 4px 10px;
-            border-radius: 3px;
-            font-size: 11px;
-            cursor: pointer;
-            color: #858585;
+            background: none; border: 1px solid #444; padding: 4px 10px;
+            border-radius: 3px; font-size: 11px; cursor: pointer; color: #858585;
         }
+        .lock-btn:hover { background-color: #3c3c3c; color: #fff; }
 
-        .lock-btn:hover {
-            background-color: #3c3c3c;
-            color: #fff;
-        }
-
-        .content-stream {
-            flex: 1;
-            padding: 24px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
+        .content-stream { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+        
         .entry-row { display: flex; width: 100%; }
         .entry-row.outgoing { justify-content: flex-end; }
         .entry-row.incoming { justify-content: flex-start; }
 
-        .entry-body {
-            max-width: 70%;
-            font-size: 13px;
-            line-height: 1.6;
-            color: #d4d4d4;
-        }
-
+        .entry-body { max-width: 70%; font-size: 13px; line-height: 1.6; color: #d4d4d4; }
         .entry-row.outgoing .entry-body { text-align: right; color: #9cdcfe; }
         .entry-row.incoming .entry-body { color: #ce9178; }
+        .meta-tag { font-size: 11px; color: #6a9955; margin-bottom: 4px; display: block; }
 
-        .meta-tag {
-            font-size: 11px;
-            color: #6a9955;
-            margin-bottom: 4px;
-            display: block;
-        }
-
-        .input-area {
-            padding: 16px 24px;
-            border-top: 1px solid #3c3c3c;
-            display: flex;
-            gap: 12px;
-            background-color: #1e1e1e;
-        }
-
-        .text-input {
-            flex: 1;
-            padding: 10px;
-            border: 1px solid #3c3c3c;
-            border-radius: 4px;
-            font-size: 13px;
-            outline: none;
-            background-color: #2d2d2d;
-            color: #fff;
-        }
-
-        .action-btn {
-            background-color: #007acc;
-            color: #fff;
-            border: none;
-            padding: 0 16px;
-            border-radius: 4px;
-            font-size: 13px;
-            cursor: pointer;
-        }
+        .input-area { padding: 16px 24px; border-top: 1px solid #3c3c3c; display: flex; gap: 12px; background-color: #1e1e1e; }
+        .text-input { flex: 1; padding: 10px; border: 1px solid #3c3c3c; border-radius: 4px; font-size: 13px; outline: none; background-color: #2d2d2d; color: #fff; }
+        .action-btn { background-color: #007acc; color: #fff; border: none; padding: 0 16px; border-radius: 4px; font-size: 13px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <!-- STAGE 1: THE DISGUISE (CODE INTERFACE) -->
+    <!-- STAGE 1: THE DISGUISE -->
     <div id="editor-container">
         <div class="editor-header">
-            <span class="tab">scratchpad.js</span>
-            <span>output.log</span>
-            <span>config.json</span>
+            <div class="tabs">
+                <span class="tab">scratchpad.js</span>
+            </div>
+            <!-- Dynamic Connection Utilities -->
+            <div class="p2p-setup">
+                <span>My ID: <span id="my-id-display" style="color:#fff; font-weight:bold;">Assigning...</span></span>
+                <input type="text" id="remote-id-input" placeholder="Connect to ID...">
+                <button id="connect-btn">Link Node</button>
+            </div>
         </div>
         <div class="editor-workspace">
             <div class="line-numbers">1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9</div>
-            <textarea id="codeEditor" class="code-textarea" spellcheck="false" autofocus placeholder="// Type runtime adjustments or scratch code configurations here..."></textarea>
+            <textarea id="codeEditor" class="code-textarea" spellcheck="false" autofocus placeholder="// Type scratch code here..."></textarea>
         </div>
     </div>
 
@@ -284,26 +194,16 @@
     <div id="app-container">
         <aside class="sidebar">
             <div class="sidebar-header">RUNTIME_REPOSITORIES</div>
-            <div class="list-container">
-                <div class="list-item active">buffer_stream_01.log</div>
-                <div class="list-item">sys_diagnostic.bak</div>
-            </div>
+            <div class="list-item active">buffer_stream_01.log</div>
         </aside>
 
         <main class="workspace">
             <header class="workspace-header">
-                <div class="workspace-title">buffer_stream_01.log</div>
+                <div class="workspace-title" id="connection-status">Disconnected</div>
                 <button class="lock-btn" id="manual-lock">Abort Session</button>
             </header>
             
-            <div class="content-stream" id="contentStream">
-                <div class="entry-row incoming">
-                    <div class="entry-body">
-                        <span class="meta-tag">// [NODE_REMOTE_01]</span>
-                        Data update successfully complete. Standing by for instructions.
-                    </div>
-                </div>
-            </div>
+            <div class="content-stream" id="contentStream"></div>
             
             <footer class="input-area">
                 <input type="text" class="text-input" id="messageInput" placeholder="Write to buffer...">
@@ -313,36 +213,67 @@
     </div>
 
     <script>
-        // CONFIGURATIONS
         const SECRET_COMMAND = "// system.initialize.terminal.call()";
         const ACCESS_CODE = "1234";
 
-        // Element Selectors
-        const codeEditor = document.getElementById('codeEditor');
-        const lockScreen = document.getElementById('lock-screen');
-        const editorContainer = document.getElementById('editor-container');
-        const appContainer = document.getElementById('app-container');
-        const passcodeField = document.getElementById('passcode');
-        const errorMsg = document.getElementById('error');
-        const manualLock = document.getElementById('manual-lock');
-        const messageInput = document.getElementById('messageInput');
-        const submitBtn = document.getElementById('submitBtn');
-        const contentStream = document.getElementById('contentStream');
+        // Element targets
+        const codeEditor = document.getElementById('codeEditor'), lockScreen = document.getElementById('lock-screen');
+        const editorContainer = document.getElementById('editor-container'), appContainer = document.getElementById('app-container');
+        const passcodeField = document.getElementById('passcode'), errorMsg = document.getElementById('error');
+        const manualLock = document.getElementById('manual-lock'), messageInput = document.getElementById('messageInput');
+        const submitBtn = document.getElementById('submitBtn'), contentStream = document.getElementById('contentStream');
+        const myIdDisplay = document.getElementById('my-id-display'), remoteIdInput = document.getElementById('remote-id-input'), connectBtn = document.getElementById('connect-btn'), connStatus = document.getElementById('connection-status');
 
-        // Monitoring the code entry area for the target string
+        let peer = new Peer(); 
+        let activeConn = null;
+
+        // Load chat logs from LocalStorage on initialization
+        window.addEventListener('DOMContentLoaded', loadChatHistory);
+
+        // Initialize unique Peer network connection
+        peer.on('open', (id) => { myIdDisplay.innerText = id; });
+
+        // Handle incoming connections from the other user
+        peer.on('connection', (conn) => {
+            activeConn = conn;
+            setupConnectionListeners();
+        });
+
+        // Initiate connection to the other user
+        connectBtn.addEventListener('click', () => {
+            const remoteId = remoteIdInput.value.trim();
+            if (remoteId) {
+                activeConn = peer.connect(remoteId);
+                setupConnectionListeners();
+            }
+        });
+
+        function setupConnectionListeners() {
+            activeConn.on('open', () => {
+                connStatus.innerText = "Pipeline Link: ACTIVE";
+                connStatus.style.color = "#6a9955";
+            });
+            activeConn.on('data', (data) => {
+                appendMessage(data.text, 'incoming', data.time);
+                saveMessage(data.text, 'incoming', data.time);
+            });
+            activeConn.on('close', () => {
+                connStatus.innerText = "Pipeline Link: TERMINATED";
+                connStatus.style.color = "#f44747";
+            });
+        }
+
+        // Monitoring script layout entry field for trigger values
         codeEditor.addEventListener('input', function() {
             if (codeEditor.value.includes(SECRET_COMMAND)) {
-                // Instantly clean up the text editor value to clear tracks
                 codeEditor.value = codeEditor.value.replace(SECRET_COMMAND, '');
-                
-                // Hide editor layer, present secondary verification field
                 editorContainer.style.display = 'none';
                 lockScreen.style.display = 'flex';
                 passcodeField.focus();
             }
         });
 
-        // Passcode Validation
+        // Passcode authorization handler
         passcodeField.addEventListener('input', function() {
             if (passcodeField.value === ACCESS_CODE) {
                 errorMsg.style.visibility = 'hidden';
@@ -350,55 +281,73 @@
                 lockScreen.style.display = 'none';
                 appContainer.style.display = 'grid';
                 messageInput.focus();
+                contentStream.scrollTop = contentStream.scrollHeight;
             } else if (passcodeField.value.length >= ACCESS_CODE.length) {
                 errorMsg.style.visibility = 'visible';
                 passcodeField.value = '';
             }
         });
 
-        // Abort/Lock function back to standard code template
-        function hardReset() {
+        function clearView() {
             appContainer.style.display = 'none';
             lockScreen.style.display = 'none';
             editorContainer.style.display = 'flex';
-            codeEditor.value = ''; // Wipes screen on exit
+            codeEditor.value = '';
             codeEditor.focus();
         }
 
-        manualLock.addEventListener('click', hardReset);
+        manualLock.addEventListener('click', clearView);
+        document.addEventListener('visibilitychange', () => { if (document.hidden) clearView(); });
 
-        // Security check: if the window loses visibility, revert to standard text editor instantly
-        document.addEventListener('visibilitychange', function() {
-            if (document.hidden) {
-                hardReset();
-            }
-        });
-
-        // App Messaging Mechanism
+        // Messaging Pipeline Functions
         function commitMessage() {
             const val = messageInput.value.trim();
             if (val === '') return;
 
+            const timestamp = new Date().toTimeString().split(' ')[0];
+            
+            // Transmit raw packet data if the pipeline connection exists
+            if (activeConn && activeConn.open) {
+                activeConn.send({ text: val, time: timestamp });
+            }
+
+            appendMessage(val, 'outgoing', timestamp);
+            saveMessage(val, 'outgoing', timestamp);
+            
+            messageInput.value = '';
+        }
+
+        function appendMessage(text, direction, time) {
             const row = document.createElement('div');
-            row.classList.add('entry-row', 'outgoing');
+            row.classList.add('entry-row', direction);
             
             const body = document.createElement('div');
             body.classList.add('entry-body');
             
-            const timestamp = new Date().toTimeString().split(' ')[0];
-            body.innerHTML = `<span class="meta-tag">// [NODE_LOCAL] at ${timestamp}</span>${val}`;
+            const tag = direction === 'outgoing' ? 'NODE_LOCAL' : 'NODE_REMOTE';
+            body.innerHTML = `<span class="meta-tag">// [${tag}] at ${time}</span>${text}`;
             
             row.appendChild(body);
             contentStream.appendChild(row);
-            
-            messageInput.value = '';
             contentStream.scrollTop = contentStream.scrollHeight;
         }
 
+        // Local Browser Storage Engines
+        function saveMessage(text, direction, time) {
+            let history = JSON.parse(localStorage.getItem('p2p_chat_history')) || [];
+            history.push({ text, direction, time });
+            localStorage.setItem('p2p_chat_history', JSON.stringify(history));
+        }
+
+        function loadChatHistory() {
+            let history = JSON.parse(localStorage.getItem('p2p_chat_history')) || [];
+            history.forEach(msg => {
+                appendMessage(msg.text, msg.direction, msg.time);
+            });
+        }
+
         submitBtn.addEventListener('click', commitMessage);
-        messageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') commitMessage();
-        });
+        messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') commitMessage(); });
     </script>
 </body>
 </html>
