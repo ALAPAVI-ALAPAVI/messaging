@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dev Workspace IDE</title>
-    <!-- Include PeerJS Client library for real-time P2P communication -->
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <!-- Include PubNub library for anonymous cloud room routing -->
+    <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.7.2.2.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -22,7 +22,7 @@
             overflow: hidden;
         }
 
-        /* --- STAGE 1: FRONTEND CODE EDITOR DISGUISE --- */
+        /* --- STAGE 1: THE DISGUISE --- */
         #editor-container {
             display: flex;
             flex-direction: column;
@@ -44,27 +44,32 @@
         .tabs { display: flex; gap: 20px; }
         .tab { color: #fff; border-bottom: 1px solid #007acc; padding-bottom: 4px; }
 
-        /* Hidden Peer Connection Panel inside Header */
-        .p2p-setup {
+        /* Discreet Room Config Entry Box */
+        .room-setup {
             display: flex;
             gap: 10px;
             align-items: center;
             font-size: 11px;
         }
-        .p2p-setup input {
+        .room-setup input {
             background: #1e1e1e;
             border: 1px solid #444;
             color: #fff;
             padding: 2px 6px;
             font-size: 11px;
             outline: none;
+            width: 130px;
         }
-        .p2p-setup button {
-            background: #007acc;
-            color: #fff;
-            border: none;
+        .room-setup button {
+            background: #3c3c3c;
+            color: #ccc;
+            border: 1px solid #555;
             padding: 2px 8px;
             cursor: pointer;
+        }
+        .room-setup button:hover {
+            background: #007acc;
+            color: #fff;
         }
 
         .editor-workspace {
@@ -168,11 +173,10 @@
             <div class="tabs">
                 <span class="tab">scratchpad.js</span>
             </div>
-            <!-- Dynamic Connection Utilities -->
-            <div class="p2p-setup">
-                <span>My ID: <span id="my-id-display" style="color:#fff; font-weight:bold;">Assigning...</span></span>
-                <input type="text" id="remote-id-input" placeholder="Connect to ID...">
-                <button id="connect-btn">Link Node</button>
+            <!-- Discreet Shared Room Identifier Config -->
+            <div class="room-setup">
+                <input type="text" id="room-key-input" placeholder="Room Key...">
+                <button id="link-room-btn">Link Room</button>
             </div>
         </div>
         <div class="editor-workspace">
@@ -199,7 +203,7 @@
 
         <main class="workspace">
             <header class="workspace-header">
-                <div class="workspace-title" id="connection-status">Disconnected</div>
+                <div class="workspace-title" id="connection-status">Pipeline Offline (No Room Linked)</div>
                 <button class="lock-btn" id="manual-lock">Abort Session</button>
             </header>
             
@@ -222,48 +226,57 @@
         const passcodeField = document.getElementById('passcode'), errorMsg = document.getElementById('error');
         const manualLock = document.getElementById('manual-lock'), messageInput = document.getElementById('messageInput');
         const submitBtn = document.getElementById('submitBtn'), contentStream = document.getElementById('contentStream');
-        const myIdDisplay = document.getElementById('my-id-display'), remoteIdInput = document.getElementById('remote-id-input'), connectBtn = document.getElementById('connect-btn'), connStatus = document.getElementById('connection-status');
+        const roomKeyInput = document.getElementById('room-key-input'), linkRoomBtn = document.getElementById('link-room-btn'), connStatus = document.getElementById('connection-status');
 
-        let peer = new Peer(); 
-        let activeConn = null;
-
-        // Load chat logs from LocalStorage on initialization
-        window.addEventListener('DOMContentLoaded', loadChatHistory);
-
-        // Initialize unique Peer network connection
-        peer.on('open', (id) => { myIdDisplay.innerText = id; });
-
-        // Handle incoming connections from the other user
-        peer.on('connection', (conn) => {
-            activeConn = conn;
-            setupConnectionListeners();
-        });
-
-        // Initiate connection to the other user
-        connectBtn.addEventListener('click', () => {
-            const remoteId = remoteIdInput.value.trim();
-            if (remoteId) {
-                activeConn = peer.connect(remoteId);
-                setupConnectionListeners();
-            }
-        });
-
-        function setupConnectionListeners() {
-            activeConn.on('open', () => {
-                connStatus.innerText = "Pipeline Link: ACTIVE";
-                connStatus.style.color = "#6a9955";
-            });
-            activeConn.on('data', (data) => {
-                appendMessage(data.text, 'incoming', data.time);
-                saveMessage(data.text, 'incoming', data.time);
-            });
-            activeConn.on('close', () => {
-                connStatus.innerText = "Pipeline Link: TERMINATED";
-                connStatus.style.color = "#f44747";
-            });
+        let pubnub = null;
+        let currentRoom = "";
+        
+        // Generate a persistent unique ID for *this* browser session to distinguish sender vs receiver
+        let myUUID = localStorage.getItem('chat_user_uuid');
+        if (!myUUID) {
+            myUUID = 'usr_' + Math.random().toString(36).substring(2, 9);
+            localStorage.setItem('chat_user_uuid', myUUID);
         }
 
-        // Monitoring script layout entry field for trigger values
+        // Load historical room chats from local storage on launch
+        window.addEventListener('DOMContentLoaded', loadChatHistory);
+
+        // Room Link Trigger Execution
+        linkRoomBtn.addEventListener('click', () => {
+            const enteredKey = roomKeyInput.value.trim();
+            if (!enteredKey) return;
+
+            currentRoom = "room_" + enteredKey;
+            
+            // Initialize PubNub using free open demo testing keys
+            pubnub = new PubNub({
+                publishKey: 'pub-c-a7a23c89-2f22-494b-bfdf-79df3f548d1d', // Public sandbox key
+                subscribeKey: 'sub-c-5eb712dc-fb0b-4654-a957-cfa29a1b87a8', // Public sandbox key
+                userId: myUUID
+            });
+
+            // Listen for data streams dropping into our specified room name
+            pubnub.addListener({
+                message: function(event) {
+                    const data = event.message;
+                    // If the message UUID is NOT mine, it's incoming
+                    if (data.sender !== myUUID) {
+                        appendMessage(data.text, 'incoming', data.time);
+                        saveMessage(data.text, 'incoming', data.time);
+                    }
+                }
+            });
+
+            // Turn on active tracking on our custom room name
+            pubnub.subscribe({ channels: [currentRoom] });
+
+            connStatus.innerText = `Pipeline Active: [${enteredKey}]`;
+            connStatus.style.color = "#6a9955";
+            linkRoomBtn.innerText = "Linked ✓";
+            linkRoomBtn.style.backgroundColor = "#2d2d2d";
+        });
+
+        // Monitor inputs in the dummy code window
         codeEditor.addEventListener('input', function() {
             if (codeEditor.value.includes(SECRET_COMMAND)) {
                 codeEditor.value = codeEditor.value.replace(SECRET_COMMAND, '');
@@ -273,7 +286,7 @@
             }
         });
 
-        // Passcode authorization handler
+        // Verify entry gateway key strings
         passcodeField.addEventListener('input', function() {
             if (passcodeField.value === ACCESS_CODE) {
                 errorMsg.style.visibility = 'hidden';
@@ -299,18 +312,27 @@
         manualLock.addEventListener('click', clearView);
         document.addEventListener('visibilitychange', () => { if (document.hidden) clearView(); });
 
-        // Messaging Pipeline Functions
+        // Packet processing logic
         function commitMessage() {
             const val = messageInput.value.trim();
-            if (val === '') return;
+            if (val === '' || !pubnub) return;
 
             const timestamp = new Date().toTimeString().split(' ')[0];
             
-            // Transmit raw packet data if the pipeline connection exists
-            if (activeConn && activeConn.open) {
-                activeConn.send({ text: val, time: timestamp });
-            }
+            // Package payload
+            const payload = {
+                text: val,
+                time: timestamp,
+                sender: myUUID
+            };
 
+            // Drop payload into the cloud network pipeline
+            pubnub.publish({
+                channel: currentRoom,
+                message: payload
+            });
+
+            // Display and save locally instantly
             appendMessage(val, 'outgoing', timestamp);
             saveMessage(val, 'outgoing', timestamp);
             
@@ -332,15 +354,15 @@
             contentStream.scrollTop = contentStream.scrollHeight;
         }
 
-        // Local Browser Storage Engines
+        // Local Memory Engines
         function saveMessage(text, direction, time) {
-            let history = JSON.parse(localStorage.getItem('p2p_chat_history')) || [];
+            let history = JSON.parse(localStorage.getItem('room_chat_history')) || [];
             history.push({ text, direction, time });
-            localStorage.setItem('p2p_chat_history', JSON.stringify(history));
+            localStorage.setItem('room_chat_history', JSON.stringify(history));
         }
 
         function loadChatHistory() {
-            let history = JSON.parse(localStorage.getItem('p2p_chat_history')) || [];
+            let history = JSON.parse(localStorage.getItem('room_chat_history')) || [];
             history.forEach(msg => {
                 appendMessage(msg.text, msg.direction, msg.time);
             });
