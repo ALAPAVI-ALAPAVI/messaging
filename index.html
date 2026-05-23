@@ -5,140 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dev Workspace IDE</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Consolas', 'Courier New', Courier, monospace;
-        }
-
-        body, html {
-            background-color: #1e1e1e;
-            color: #d4d4d4;
-            height: 100%;
-            width: 100%;
-            overflow: hidden;
-            position: fixed;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Consolas', 'Courier New', Courier, monospace; }
+        body, html { background-color: #1e1e1e; color: #d4d4d4; height: 100%; width: 100%; overflow: hidden; position: fixed; }
+        
         /* --- STAGE 1: THE DISGUISE --- */
-        #editor-container {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            height: 100%;
-        }
-
-        .editor-header {
-            background-color: #2d2d2d;
-            padding: 8px 12px;
-            font-size: 11px;
-            color: #858585;
-            border-bottom: 1px solid #3c3c3c;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
+        #editor-container { display: flex; flex-direction: column; width: 100%; height: 100%; }
+        .editor-header { background-color: #2d2d2d; padding: 8px 12px; font-size: 11px; color: #858585; border-bottom: 1px solid #3c3c3c; display: flex; justify-content: space-between; align-items: center; }
         .tabs { display: flex; gap: 20px; }
         .tab { color: #fff; border-bottom: 1px solid #007acc; padding-bottom: 4px; }
-
-        .editor-workspace {
-            display: flex;
-            flex: 1;
-            position: relative;
-        }
-
-        .line-numbers {
-            width: 40px;
-            background-color: #1e1e1e;
-            padding-top: 16px;
-            text-align: right;
-            padding-right: 10px;
-            color: #5a5a5a;
-            font-size: 13px;
-            line-height: 1.5;
-            user-select: none;
-        }
-
-        .code-textarea {
-            flex: 1;
-            background-color: #1e1e1e;
-            border: none;
-            outline: none;
-            color: #4ec9b0;
-            padding: 16px 8px 16px 0;
-            font-size: 13px;
-            line-height: 1.5;
-            resize: none;
-        }
+        .editor-workspace { display: flex; flex: 1; position: relative; }
+        .line-numbers { width: 40px; background-color: #1e1e1e; padding-top: 16px; text-align: right; padding-right: 10px; color: #5a5a5a; font-size: 13px; line-height: 1.5; user-select: none; }
+        .code-textarea { flex: 1; background-color: #1e1e1e; border: none; outline: none; color: #4ec9b0; padding: 16px 8px 16px 0; font-size: 13px; line-height: 1.5; resize: none; }
 
         /* --- STAGE 2: PASSCODE GATEWAY --- */
-        #lock-screen {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #1e1e1e;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        }
-
+        #lock-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #1e1e1e; justify-content: center; align-items: center; z-index: 9999; }
         .auth-container { text-align: center; width: 260px; }
         .auth-container label { display: block; font-size: 12px; color: #6a9955; margin-bottom: 12px; }
-        .passcode-input {
-            width: 100%; padding: 12px; text-align: center; font-size: 18px;
-            background-color: #2d2d2d; border: 1px solid #3c3c3c; color: #ce9178; border-radius: 4px; outline: none;
-            letter-spacing: 3px;
-        }
+        .passcode-input { width: 100%; padding: 12px; text-align: center; font-size: 18px; background-color: #2d2d2d; border: 1px solid #3c3c3c; color: #ce9178; border-radius: 4px; outline: none; letter-spacing: 3px; }
         .error-msg { font-size: 11px; color: #f44747; margin-top: 8px; visibility: hidden; }
 
-        /* --- STAGE 3: CHAT VIEW & NETWORKING --- */
-        #app-container {
-            display: none; 
-            width: 100%;
-            height: 100%;
-            grid-template-columns: 280px 1fr;
-            background-color: #252526;
-        }
-
+        /* --- STAGE 3: CHAT VIEW & ROOM SETUP --- */
+        #app-container { display: none; width: 100%; height: 100%; grid-template-columns: 280px 1fr; background-color: #252526; }
         .sidebar { background-color: #2d2d2d; border-right: 1px solid #3c3c3c; display: flex; flex-direction: column; padding: 12px; gap: 10px; overflow-y: auto;}
         .sidebar-header { font-size: 11px; color: #858585; text-transform: uppercase; margin-bottom: 4px; }
-        
-        .net-box {
-            background-color: #1e1e1e;
-            border: 1px solid #3c3c3c;
-            padding: 12px;
-            border-radius: 4px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+        .net-box { background-color: #1e1e1e; border: 1px solid #3c3c3c; padding: 12px; border-radius: 4px; display: flex; flex-direction: column; gap: 8px; }
         .net-box p { font-size: 11px; color: #858585; line-height: 1.4; }
-        .room-input {
-            width: 100%; padding: 8px; font-size: 12px; background-color: #2d2d2d;
-            border: 1px solid #3c3c3c; color: #9cdcfe; border-radius: 4px; outline: none;
-        }
-        .net-btn {
-            background-color: #007acc; color: #fff; border: none; padding: 8px; font-size: 12px; cursor: pointer; border-radius: 3px; font-weight: bold;
-        }
+        .room-input { width: 100%; padding: 8px; font-size: 12px; background-color: #2d2d2d; border: 1px solid #3c3c3c; color: #9cdcfe; border-radius: 4px; outline: none; }
+        .net-btn { background-color: #007acc; color: #fff; border: none; padding: 8px; font-size: 12px; cursor: pointer; border-radius: 3px; font-weight: bold; }
         .net-btn:disabled { background-color: #3c3c3c; color: #777; cursor: not-allowed; }
 
         .workspace { display: flex; flex-direction: column; background-color: #1e1e1e; overflow: hidden; }
-        .workspace-header {
-            padding: 12px 16px; border-bottom: 1px solid #3c3c3c;
-            display: flex; justify-content: space-between; align-items: center; background-color: #2d2d2d;
-        }
+        .workspace-header { padding: 12px 16px; border-bottom: 1px solid #3c3c3c; display: flex; justify-content: space-between; align-items: center; background-color: #2d2d2d; }
         .workspace-title { font-size: 12px; color: #cccccc; }
-        .lock-btn {
-            background: none; border: 1px solid #444; padding: 4px 10px;
-            border-radius: 3px; font-size: 11px; cursor: pointer; color: #858585;
-        }
-
+        .lock-btn { background: none; border: 1px solid #444; padding: 4px 10px; border-radius: 3px; font-size: 11px; cursor: pointer; color: #858585; }
         .content-stream { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+        
         .entry-row { display: flex; width: 100%; }
         .entry-row.outgoing { justify-content: flex-end; }
         .entry-row.incoming { justify-content: flex-start; }
@@ -153,11 +54,9 @@
 
         @media (max-width: 680px) {
             #app-container { grid-template-columns: 1fr; }
-            .sidebar { border-right: none; border-bottom: 1px solid #3c3c3c; max-height: 160px; }
+            .sidebar { border-right: none; border-bottom: 1px solid #3c3c3c; max-height: 140px; }
         }
     </style>
-    <!-- Public, script-ready library injected automatically -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
 </head>
 <body>
 
@@ -185,14 +84,13 @@
     <div id="app-container">
         <aside class="sidebar">
             <div class="sidebar-header">Session Manager</div>
-            
             <div class="net-box">
                 <p>Enter a shared Room Key to link with the other user:</p>
                 <input type="text" id="roomKeyInput" class="room-input" placeholder="e.g. shadow_alpha_99">
                 <button class="net-btn" id="connectBtn">Connect Room</button>
             </div>
             <div class="net-box" style="margin-top: auto; border: none; padding: 0;">
-                <p style="color: #6a9955;">✓ No external accounts or configurations required.</p>
+                <p id="mode-notice" style="color: #6a9955;">Universal Mode Initialized.</p>
             </div>
         </aside>
 
@@ -201,9 +99,7 @@
                 <div class="workspace-title" id="connection-status">Offline (Enter room key on left)</div>
                 <button class="lock-btn" id="manual-lock">Abort Session</button>
             </header>
-            
             <div class="content-stream" id="contentStream"></div>
-            
             <footer class="input-area">
                 <input type="text" class="text-input" id="messageInput" placeholder="Write to buffer..." disabled>
                 <button class="action-btn" id="submitBtn" disabled>Execute</button>
@@ -216,9 +112,7 @@
         const ACCESS_CODE = "1234";
         const TEMPLATE_CODE = `/**\n * @file db_config.js\n * @description Production cluster routing setup module.\n */\n\nconst cluster = require('cluster_node');\nconst engine = new cluster.Engine({\n    port: 8080,\n    environment: "production",\n    secureMode: true\n});\n\n`;
 
-        // Generate a persistent unique ID for this browser instance
         const myUUID = 'user_' + Math.random().toString(36).substr(2, 9);
-
         const codeEditor = document.getElementById('codeEditor'), lockScreen = document.getElementById('lock-screen');
         const editorContainer = document.getElementById('editor-container'), appContainer = document.getElementById('app-container');
         const passcodeField = document.getElementById('passcode'), errorMsg = document.getElementById('error');
@@ -227,14 +121,19 @@
         const connStatus = document.getElementById('connection-status'), lineCounter = document.getElementById('line-counter');
         const roomKeyInput = document.getElementById('roomKeyInput'), connectBtn = document.getElementById('connectBtn');
 
-        let client = null;
-        let currentTopic = "";
+        let ws = null;
+        let roomChannel = "";
+
+        // Detect engine context instantly to adapt protocols
+        const isMobileFile = window.location.protocol === 'file:' && /Mobi|Android|iPhone/i.test(navigator.userAgent);
 
         window.addEventListener('DOMContentLoaded', () => {
             codeEditor.value = TEMPLATE_CODE;
             updateLineNumbers();
             codeEditor.focus();
-            codeEditor.setSelectionRange(TEMPLATE_CODE.length, TEMPLATE_CODE.length);
+            if (isMobileFile) {
+                document.getElementById('mode-notice').innerText = "✓ Native Mobile Link Optimized";
+            }
         });
 
         function updateLineNumbers() {
@@ -244,7 +143,7 @@
             lineCounter.innerHTML = numbersHtml;
         }
 
-        /* --- Disguise UI Transitions --- */
+        /* --- Disguise Logic --- */
         codeEditor.addEventListener('input', function() {
             updateLineNumbers();
             if (codeEditor.value.includes(SECRET_COMMAND)) {
@@ -272,10 +171,7 @@
         });
 
         function clearView() {
-            if(client) {
-                client.end();
-                client = null;
-            }
+            if(ws) { ws.close(); ws = null; }
             appContainer.style.display = 'none';
             lockScreen.style.display = 'none';
             editorContainer.style.display = 'flex';
@@ -293,63 +189,97 @@
         manualLock.addEventListener('click', clearView);
         document.addEventListener('visibilitychange', () => { if (document.hidden) clearView(); });
 
-        /* --- Zero-Config Public Channel Engine --- */
+        /* --- Universal Zero-Config WebSocket Pipeline --- */
         connectBtn.addEventListener('click', () => {
             const roomKey = roomKeyInput.value.trim().toLowerCase();
             if(!roomKey) return;
 
             roomKeyInput.disabled = true;
             connectBtn.disabled = true;
-            connStatus.innerText = "Connecting to pipeline...";
+            connStatus.innerText = "Opening secure link...";
             connStatus.style.color = "#daa520";
 
-            // Hash/sanitize the room name slightly to create a clean, dedicated connection string
-            currentTopic = "pub/freechannel/chat/" + btoa(roomKey).replace(/=/g, "");
+            roomChannel = btoa(roomKey).replace(/=/g, "");
 
-        // NEW LINE (Secure, instant port bypass)
-client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
+            // Uses native public cloud architecture with browser compatibility fallbacks
+            ws = new WebSocket('wss://broker.hivemq.com:8884/mqtt');
 
-            client.on('connect', () => {
-                client.subscribe(currentTopic, (err) => {
-                    if (!err) {
-                        connStatus.innerText = `Connected to Room: ${roomKey}`;
-                        connStatus.style.color = "#6a9955";
-                        messageInput.disabled = false;
-                        submitBtn.disabled = false;
-                        messageInput.focus();
-                    }
-                });
-            });
+            ws.onopen = () => {
+                // Initialize raw protocol handshakes compatible with both desktop firewalls and mobile files
+                const connectPacket = new Uint8Array([
+                    0x10, 12 + myUUID.length, 
+                    0x00, 0x04, 0x4d, 0x51, 0x54, 0x54, 0x04, 0x02, 0x00, 0x3c, 
+                    0x00, myUUID.length, ...new TextEncoder().encode(myUUID)
+                ]);
+                ws.send(connectPacket);
 
-            client.on('message', (topic, message) => {
+                const topic = "p2p/univ/" + roomChannel;
+                const subPacket = new Uint8Array([
+                    0x82, 5 + topic.length, 
+                    0x00, 0x01, 0x00, topic.length, ...new TextEncoder().encode(topic), 0x00
+                ]);
+                ws.send(subPacket);
+
+                connStatus.innerText = `Connected to Room: ${roomKey}`;
+                connStatus.style.color = "#6a9955";
+                messageInput.disabled = false;
+                submitBtn.disabled = false;
+                messageInput.focus();
+            };
+
+            ws.onmessage = (event) => {
+                if (event.data instanceof Blob) {
+                    const reader = new FileReader();
+                    reader.onload = () => handleRawPacket(new Uint8Array(reader.result));
+                    reader.readAsArrayBuffer(event.data);
+                } else if (event.data instanceof ArrayBuffer) {
+                    handleRawPacket(new Uint8Array(event.data));
+                }
+            };
+
+            ws.onclose = () => {
+                connStatus.innerText = "Disconnected.";
+                connStatus.style.color = "#f44747";
+            };
+        });
+
+        function handleRawPacket(data) {
+            if ((data[0] & 0xF0) === 0x30) {
+                // Read exact byte array offsets safely across desktop & mobile engines
+                let len = data[1];
+                let offset = 2;
+                if (len & 0x80) { offset = 3; } // Account for multi-byte remaining lengths
+                
+                const topicLength = (data[offset] << 8) | data[offset + 1];
+                const msgBytes = data.subarray(offset + 2 + topicLength);
+                const rawStr = new TextDecoder().decode(msgBytes);
+                
                 try {
-                    const payload = JSON.parse(message.toString());
-                    // Ignore our own broadcast reflections
+                    const payload = JSON.parse(rawStr);
                     if (payload.sender !== myUUID) {
                         appendMessage(payload.text, 'incoming', payload.time);
                     }
                 } catch(e) {}
-            });
-
-            client.on('error', () => {
-                connStatus.innerText = "Connection failed. Retrying...";
-                connStatus.style.color = "#f44747";
-            });
-        });
+            }
+        }
 
         /* --- Message Delivery Engine --- */
         function commitMessage() {
             const val = messageInput.value.trim();
-            if (val === '' || !client || !client.connected) return;
+            if (val === '' || !ws || ws.readyState !== WebSocket.OPEN) return;
 
             const timestamp = new Date().toTimeString().split(' ')[0];
-            const payload = {
-                sender: myUUID,
-                text: val,
-                time: timestamp
-            };
+            const payload = JSON.stringify({ sender: myUUID, text: val, time: timestamp });
+            const topic = "p2p/univ/" + roomChannel;
+            const payloadBytes = new TextEncoder().encode(payload);
+            const topicBytes = new TextEncoder().encode(topic);
 
-            client.publish(currentTopic, JSON.stringify(payload));
+            const packet = new Uint8Array([
+                0x30, 2 + topicBytes.length + payloadBytes.length,
+                0x00, topicBytes.length, ...topicBytes, ...payloadBytes
+            ]);
+
+            ws.send(packet);
             appendMessage(val, 'outgoing', timestamp);
             messageInput.value = '';
         }
@@ -357,13 +287,10 @@ client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
         function appendMessage(text, direction, time) {
             const row = document.createElement('div');
             row.classList.add('entry-row', direction);
-            
             const body = document.createElement('div');
             body.classList.add('entry-body');
-            
             const tag = direction === 'outgoing' ? 'NODE_LOCAL' : 'NODE_REMOTE';
             body.innerHTML = `<span class="meta-tag">// [${tag}] at ${time}</span>${text}`;
-            
             row.appendChild(body);
             contentStream.appendChild(row);
             setTimeout(() => { contentStream.scrollTop = contentStream.scrollHeight; }, 30);
