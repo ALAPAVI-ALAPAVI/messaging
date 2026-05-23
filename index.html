@@ -306,8 +306,8 @@
             // Hash/sanitize the room name slightly to create a clean, dedicated connection string
             currentTopic = "pub/freechannel/chat/" + btoa(roomKey).replace(/=/g, "");
 
-            // Connects to a completely free, open public broker ecosystem
-            client = mqtt.connect('wss://broker.hivemq.com:8000/mqtt');
+        // NEW LINE (Secure, instant port bypass)
+client = mqtt.connect('wss://broker.hivemq.com:8884/mqtt');
 
             client.on('connect', () => {
                 client.subscribe(currentTopic, (err) => {
