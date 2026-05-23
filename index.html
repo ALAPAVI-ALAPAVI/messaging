@@ -3,414 +3,401 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChatApp - Messages</title>
+    <title>Dev Workspace IDE</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Consolas', 'Courier New', Courier, monospace;
         }
 
-        body {
-            background-color: #f0f2f5;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* Main Layout Container */
-        .app-container {
-            display: flex;
-            width: 100vw;
-            height: 100vh;
-            background-color: #fff;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        /* --- SIDEBAR: Chat List --- */
-        .sidebar {
-            width: 350px;
-            border-right: 1px solid #e0e0e0;
-            display: flex;
-            flex-direction: column;
-            background-color: #fff;
-        }
-
-        .sidebar-header {
-            padding: 20px;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .sidebar-header h1 {
-            font-size: 24px;
-            color: #1a1a1a;
-        }
-
-        .search-box {
-            padding: 15px 20px;
-        }
-
-        .search-box input {
+        body, html {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            height: 100%;
             width: 100%;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 20px;
-            background-color: #f0f2f5;
-            font-size: 14px;
-            outline: none;
-        }
-
-        .chat-list {
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        .chat-item {
-            display: flex;
-            align-items: center;
-            padding: 15px 20px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .chat-item:hover {
-            background-color: #f5f6f7;
-        }
-
-        .chat-item.active {
-            background-color: #e7f3ff;
-        }
-
-        .avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background-color: #ccc;
-            margin-right: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: #fff;
-        }
-
-        .chat-info {
-            flex: 1;
-        }
-
-        .chat-info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-        }
-
-        .chat-name {
-            font-weight: 600;
-            color: #1a1a1a;
-        }
-
-        .chat-time {
-            font-size: 12px;
-            color: #65676b;
-        }
-
-        .chat-preview {
-            font-size: 14px;
-            color: #65676b;
-            white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis;
-            width: 200px;
         }
 
-        /* --- MAIN CONTENT: Active Chat --- */
-        .main-chat {
-            flex: 1;
+        /* --- STAGE 1: FRONTEND CODE EDITOR DISGUISE --- */
+        #editor-container {
             display: flex;
             flex-direction: column;
-            background-color: #f7f9fa;
-        }
-
-        .chat-header {
-            padding: 15px 20px;
-            background-color: #fff;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            align-items: center;
-        }
-
-        .chat-header .avatar {
-            width: 40px;
-            height: 40px;
-        }
-
-        .active-user-name {
-            font-weight: 600;
-            color: #1a1a1a;
-        }
-
-        .active-user-status {
-            font-size: 12px;
-            color: #00a884;
-        }
-
-        /* Messages Window */
-        .message-window {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .message-row {
-            display: flex;
             width: 100%;
+            height: 100%;
         }
 
-        .message-row.sent {
-            justify-content: flex-end;
+        .editor-header {
+            background-color: #2d2d2d;
+            padding: 8px 16px;
+            font-size: 12px;
+            color: #858585;
+            border-bottom: 1px solid #3c3c3c;
+            display: flex;
+            gap: 20px;
         }
 
-        .message-row.received {
-            justify-content: flex-start;
+        .tab {
+            color: #fff;
+            border-bottom: 1px solid #007acc;
+            padding-bottom: 4px;
+            cursor: default;
         }
 
-        .message-bubble {
-            max-width: 60%;
-            padding: 12px 16px;
-            border-radius: 18px;
-            font-size: 15px;
-            line-height: 1.4;
+        .editor-workspace {
+            display: flex;
+            flex: 1;
             position: relative;
         }
 
-        .sent .message-bubble {
-            background-color: #0084ff;
-            color: #fff;
-            border-bottom-right-radius: 4px;
-        }
-
-        .received .message-bubble {
-            background-color: #e4e6eb;
-            color: #050505;
-            border-bottom-left-radius: 4px;
-        }
-
-        .message-timestamp {
-            font-size: 10px;
-            margin-top: 5px;
-            display: block;
+        .line-numbers {
+            width: 45px;
+            background-color: #1e1e1e;
+            padding-top: 16px;
             text-align: right;
-            opacity: 0.7;
+            padding-right: 12px;
+            color: #858585;
+            font-size: 14px;
+            line-height: 1.5;
+            user-select: none;
         }
 
-        /* Input Footer */
-        .chat-footer {
-            padding: 15px 20px;
-            background-color: #fff;
-            border-top: 1px solid #e0e0e0;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .input-box {
+        .code-textarea {
             flex: 1;
-            padding: 12px 20px;
-            border: 1px solid #e0e0e0;
-            border-radius: 25px;
+            background-color: #1e1e1e;
+            border: none;
             outline: none;
-            font-size: 15px;
-            background-color: #f0f2f5;
+            color: #9cdcfe;
+            padding-top: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+            resize: none;
+            tab-size: 4;
         }
 
-        .input-box:focus {
-            background-color: #fff;
-            border-color: #0084ff;
+        /* --- STAGE 2: PASSCODE GATEWAY --- */
+        #lock-screen {
+            display: none; /* Triggered only by specific string */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1e1e1e;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
         }
 
-        .send-btn {
-            background-color: #0084ff;
+        .auth-container {
+            text-align: center;
+            width: 280px;
+        }
+
+        .auth-container label {
+            display: block;
+            font-size: 12px;
+            color: #6a9955; /* Comment green style */
+            margin-bottom: 12px;
+        }
+
+        .passcode-input {
+            width: 100%;
+            padding: 10px;
+            text-align: center;
+            font-size: 16px;
+            background-color: #2d2d2d;
+            border: 1px solid #3c3c3c;
+            color: #ce9178;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .error-msg {
+            font-size: 11px;
+            color: #f44747;
+            margin-top: 8px;
+            visibility: hidden;
+        }
+
+        /* --- STAGE 3: CHAT VIEW --- */
+        #app-container {
+            display: none; 
+            width: 100%;
+            height: 100%;
+            grid-template-columns: 240px 1fr;
+            background-color: #252526;
+        }
+
+        .sidebar {
+            background-color: #2d2d2d;
+            border-right: 1px solid #3c3c3c;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid #3c3c3c;
+            font-size: 11px;
+            color: #858585;
+        }
+
+        .list-container {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .list-item {
+            padding: 10px 16px;
+            font-size: 13px;
+            color: #cccccc;
+            cursor: pointer;
+        }
+
+        .list-item.active {
+            background-color: #37373d;
+            color: #fff;
+        }
+
+        .workspace {
+            display: flex;
+            flex-direction: column;
+            background-color: #1e1e1e;
+        }
+
+        .workspace-header {
+            padding: 12px 20px;
+            border-bottom: 1px solid #3c3c3c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #2d2d2d;
+        }
+
+        .workspace-title {
+            font-size: 13px;
+            color: #cccccc;
+        }
+
+        .lock-btn {
+            background: none;
+            border: 1px solid #444;
+            padding: 4px 10px;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            color: #858585;
+        }
+
+        .lock-btn:hover {
+            background-color: #3c3c3c;
+            color: #fff;
+        }
+
+        .content-stream {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .entry-row { display: flex; width: 100%; }
+        .entry-row.outgoing { justify-content: flex-end; }
+        .entry-row.incoming { justify-content: flex-start; }
+
+        .entry-body {
+            max-width: 70%;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #d4d4d4;
+        }
+
+        .entry-row.outgoing .entry-body { text-align: right; color: #9cdcfe; }
+        .entry-row.incoming .entry-body { color: #ce9178; }
+
+        .meta-tag {
+            font-size: 11px;
+            color: #6a9955;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .input-area {
+            padding: 16px 24px;
+            border-top: 1px solid #3c3c3c;
+            display: flex;
+            gap: 12px;
+            background-color: #1e1e1e;
+        }
+
+        .text-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #3c3c3c;
+            border-radius: 4px;
+            font-size: 13px;
+            outline: none;
+            background-color: #2d2d2d;
+            color: #fff;
+        }
+
+        .action-btn {
+            background-color: #007acc;
             color: #fff;
             border: none;
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-weight: 600;
+            padding: 0 16px;
+            border-radius: 4px;
+            font-size: 13px;
             cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .send-btn:hover {
-            background-color: #0066cc;
-        }
-
-        /* Responsive design for smaller screens */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 80px;
-            }
-            .chat-info, .search-box, .sidebar-header h1 {
-                display: none;
-            }
-            .sidebar-header {
-                justify-content: center;
-            }
-            .avatar {
-                margin-right: 0;
-            }
         }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
-        
-        <!-- Sidebar: Conversation List -->
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <h1>Chats</h1>
-            </div>
-            
-            <div class="search-box">
-                <input type="text" placeholder="Search Messenger">
-            </div>
-            
-            <div class="chat-list">
-                <!-- Active Chat Item -->
-                <div class="chat-item active">
-                    <div class="avatar" style="background-color: #ff5722;">JD</div>
-                    <div class="chat-info">
-                        <div class="chat-info-row">
-                            <span class="chat-name">Jane Doe</span>
-                            <span class="chat-time">10:42 AM</span>
-                        </div>
-                        <div class="chat-preview">Sounds good! See you at 5 PM then.</div>
-                    </div>
-                </div>
-                
-                <!-- Other Chat Items -->
-                <div class="chat-item">
-                    <div class="avatar" style="background-color: #4caf50;">BS</div>
-                    <div class="chat-info">
-                        <div class="chat-info-row">
-                            <span class="chat-name">Bob Smith</span>
-                            <span class="chat-time">Yesterday</span>
-                        </div>
-                        <div class="chat-preview">Did you finish reviewing the project files?</div>
-                    </div>
-                </div>
+    <!-- STAGE 1: THE DISGUISE (CODE INTERFACE) -->
+    <div id="editor-container">
+        <div class="editor-header">
+            <span class="tab">scratchpad.js</span>
+            <span>output.log</span>
+            <span>config.json</span>
+        </div>
+        <div class="editor-workspace">
+            <div class="line-numbers">1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9</div>
+            <textarea id="codeEditor" class="code-textarea" spellcheck="false" autofocus placeholder="// Type runtime adjustments or scratch code configurations here..."></textarea>
+        </div>
+    </div>
 
-                <div class="chat-item">
-                    <div class="avatar" style="background-color: #9c27b0;">MT</div>
-                    <div class="chat-info">
-                        <div class="chat-info-row">
-                            <span class="chat-name">Mary Thompson</span>
-                            <span class="chat-time">Monday</span>
-                        </div>
-                        <div class="chat-preview">Haha that's amazing! 😂</div>
-                    </div>
-                </div>
+    <!-- STAGE 2: HIDDEN GATEWAY -->
+    <div id="lock-screen">
+        <div class="auth-container">
+            <label for="passcode">/* RUNTIME_AUTH_REQUIRED */</label>
+            <input type="password" id="passcode" class="passcode-input" maxlength="8" placeholder="••••">
+            <div id="error" class="error-msg">Execution signature failed.</div>
+        </div>
+    </div>
+
+    <!-- STAGE 3: THE DISCREET CHAT ENVIRONMENT -->
+    <div id="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">RUNTIME_REPOSITORIES</div>
+            <div class="list-container">
+                <div class="list-item active">buffer_stream_01.log</div>
+                <div class="list-item">sys_diagnostic.bak</div>
             </div>
         </aside>
 
-        <!-- Main Chat Pane -->
-        <main class="main-chat">
-            <!-- Active Chat Header -->
-            <header class="chat-header">
-                <div class="avatar" style="background-color: #ff5722;">JD</div>
-                <div style="margin-left: 15px;">
-                    <div class="active-user-name">Jane Doe</div>
-                    <div class="active-user-status">Online</div>
-                </div>
+        <main class="workspace">
+            <header class="workspace-header">
+                <div class="workspace-title">buffer_stream_01.log</div>
+                <button class="lock-btn" id="manual-lock">Abort Session</button>
             </header>
             
-            <!-- Messages Stream -->
-            <div class="message-window" id="messageWindow">
-                
-                <!-- Received Message -->
-                <div class="message-row received">
-                    <div class="message-bubble">
-                        Hey! Are we still on for coffee later today?
-                        <span class="message-timestamp">10:35 AM</span>
+            <div class="content-stream" id="contentStream">
+                <div class="entry-row incoming">
+                    <div class="entry-body">
+                        <span class="meta-tag">// [NODE_REMOTE_01]</span>
+                        Data update successfully complete. Standing by for instructions.
                     </div>
                 </div>
-                
-                <!-- Sent Message -->
-                <div class="message-row sent">
-                    <div class="message-bubble">
-                        Hey Jane! Yes, absolutely. Does the place downtown work for you?
-                        <span class="message-timestamp">10:38 AM</span>
-                    </div>
-                </div>
-                
-                <!-- Received Message -->
-                <div class="message-row received">
-                    <div class="message-bubble">
-                        Sounds good! See you at 5 PM then.
-                        <span class="message-timestamp">10:42 AM</span>
-                    </div>
-                </div>
-
             </div>
             
-            <!-- Chat Input Footer -->
-            <footer class="chat-footer">
-                <input type="text" class="input-box" id="messageInput" placeholder="Type a message...">
-                <button class="send-btn" id="sendBtn">Send</button>
+            <footer class="input-area">
+                <input type="text" class="text-input" id="messageInput" placeholder="Write to buffer...">
+                <button class="action-btn" id="submitBtn">Execute</button>
             </footer>
         </main>
-
     </div>
 
-    <!-- Simple JavaScript functionality to make it interactive -->
     <script>
-        const sendBtn = document.getElementById('sendBtn');
+        // CONFIGURATIONS
+        const SECRET_COMMAND = "// system.initialize.terminal.call()";
+        const ACCESS_CODE = "1234";
+
+        // Element Selectors
+        const codeEditor = document.getElementById('codeEditor');
+        const lockScreen = document.getElementById('lock-screen');
+        const editorContainer = document.getElementById('editor-container');
+        const appContainer = document.getElementById('app-container');
+        const passcodeField = document.getElementById('passcode');
+        const errorMsg = document.getElementById('error');
+        const manualLock = document.getElementById('manual-lock');
         const messageInput = document.getElementById('messageInput');
-        const messageWindow = document.getElementById('messageWindow');
+        const submitBtn = document.getElementById('submitBtn');
+        const contentStream = document.getElementById('contentStream');
 
-        function sendMessage() {
-            const text = messageInput.value.trim();
-            if (text === '') return;
+        // Monitoring the code entry area for the target string
+        codeEditor.addEventListener('input', function() {
+            if (codeEditor.value.includes(SECRET_COMMAND)) {
+                // Instantly clean up the text editor value to clear tracks
+                codeEditor.value = codeEditor.value.replace(SECRET_COMMAND, '');
+                
+                // Hide editor layer, present secondary verification field
+                editorContainer.style.display = 'none';
+                lockScreen.style.display = 'flex';
+                passcodeField.focus();
+            }
+        });
 
-            // Create row container
-            const messageRow = document.createElement('div');
-            messageRow.classList.add('message-row', 'sent');
+        // Passcode Validation
+        passcodeField.addEventListener('input', function() {
+            if (passcodeField.value === ACCESS_CODE) {
+                errorMsg.style.visibility = 'hidden';
+                passcodeField.value = '';
+                lockScreen.style.display = 'none';
+                appContainer.style.display = 'grid';
+                messageInput.focus();
+            } else if (passcodeField.value.length >= ACCESS_CODE.length) {
+                errorMsg.style.visibility = 'visible';
+                passcodeField.value = '';
+            }
+        });
 
-            // Create bubble
-            const bubble = document.createElement('div');
-            bubble.classList.add('message-bubble');
-            
-            // Get current time
-            const now = new Date();
-            const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-            // Set content
-            bubble.innerHTML = `${text} <span class="message-timestamp">${timeString}</span>`;
-            
-            // Assemble and append
-            messageRow.appendChild(bubble);
-            messageWindow.appendChild(messageRow);
-
-            // Clear input and auto-scroll to bottom
-            messageInput.value = '';
-            messageWindow.scrollTop = messageWindow.scrollHeight;
+        // Abort/Lock function back to standard code template
+        function hardReset() {
+            appContainer.style.display = 'none';
+            lockScreen.style.display = 'none';
+            editorContainer.style.display = 'flex';
+            codeEditor.value = ''; // Wipes screen on exit
+            codeEditor.focus();
         }
 
-        // Trigger on click
-        sendBtn.addEventListener('click', sendMessage);
+        manualLock.addEventListener('click', hardReset);
 
-        // Trigger on Enter key
-        messageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
+        // Security check: if the window loses visibility, revert to standard text editor instantly
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                hardReset();
             }
+        });
+
+        // App Messaging Mechanism
+        function commitMessage() {
+            const val = messageInput.value.trim();
+            if (val === '') return;
+
+            const row = document.createElement('div');
+            row.classList.add('entry-row', 'outgoing');
+            
+            const body = document.createElement('div');
+            body.classList.add('entry-body');
+            
+            const timestamp = new Date().toTimeString().split(' ')[0];
+            body.innerHTML = `<span class="meta-tag">// [NODE_LOCAL] at ${timestamp}</span>${val}`;
+            
+            row.appendChild(body);
+            contentStream.appendChild(row);
+            
+            messageInput.value = '';
+            contentStream.scrollTop = contentStream.scrollHeight;
+        }
+
+        submitBtn.addEventListener('click', commitMessage);
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') commitMessage();
         });
     </script>
 </body>
