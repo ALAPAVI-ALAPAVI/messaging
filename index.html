@@ -2,10 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dev Workspace IDE</title>
-    <!-- Include PubNub library for anonymous cloud room routing -->
-    <script src="https://cdn.pubnub.com/sdk/javascript/pubnub.7.2.2.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -20,6 +18,7 @@
             height: 100%;
             width: 100%;
             overflow: hidden;
+            position: fixed;
         }
 
         /* --- STAGE 1: THE DISGUISE --- */
@@ -32,8 +31,8 @@
 
         .editor-header {
             background-color: #2d2d2d;
-            padding: 8px 16px;
-            font-size: 12px;
+            padding: 8px 12px;
+            font-size: 11px;
             color: #858585;
             border-bottom: 1px solid #3c3c3c;
             display: flex;
@@ -44,47 +43,20 @@
         .tabs { display: flex; gap: 20px; }
         .tab { color: #fff; border-bottom: 1px solid #007acc; padding-bottom: 4px; }
 
-        /* Discreet Room Config Entry Box */
-        .room-setup {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            font-size: 11px;
-        }
-        .room-setup input {
-            background: #1e1e1e;
-            border: 1px solid #444;
-            color: #fff;
-            padding: 2px 6px;
-            font-size: 11px;
-            outline: none;
-            width: 130px;
-        }
-        .room-setup button {
-            background: #3c3c3c;
-            color: #ccc;
-            border: 1px solid #555;
-            padding: 2px 8px;
-            cursor: pointer;
-        }
-        .room-setup button:hover {
-            background: #007acc;
-            color: #fff;
-        }
-
         .editor-workspace {
             display: flex;
             flex: 1;
+            position: relative;
         }
 
         .line-numbers {
-            width: 45px;
+            width: 40px;
             background-color: #1e1e1e;
             padding-top: 16px;
             text-align: right;
-            padding-right: 12px;
-            color: #858585;
-            font-size: 14px;
+            padding-right: 10px;
+            color: #5a5a5a;
+            font-size: 13px;
             line-height: 1.5;
             user-select: none;
         }
@@ -94,9 +66,9 @@
             background-color: #1e1e1e;
             border: none;
             outline: none;
-            color: #9cdcfe;
-            padding-top: 16px;
-            font-size: 14px;
+            color: #4ec9b0;
+            padding: 16px 8px 16px 0;
+            font-size: 13px;
             line-height: 1.5;
             resize: none;
         }
@@ -115,103 +87,126 @@
             z-index: 9999;
         }
 
-        .auth-container { text-align: center; width: 280px; }
+        .auth-container { text-align: center; width: 260px; }
         .auth-container label { display: block; font-size: 12px; color: #6a9955; margin-bottom: 12px; }
         .passcode-input {
-            width: 100%; padding: 10px; text-align: center; font-size: 16px;
+            width: 100%; padding: 12px; text-align: center; font-size: 18px;
             background-color: #2d2d2d; border: 1px solid #3c3c3c; color: #ce9178; border-radius: 4px; outline: none;
+            letter-spacing: 3px;
         }
         .error-msg { font-size: 11px; color: #f44747; margin-top: 8px; visibility: hidden; }
 
-        /* --- STAGE 3: CHAT VIEW --- */
+        /* --- STAGE 3: CHAT VIEW & NETWORKING --- */
         #app-container {
             display: none; 
             width: 100%;
             height: 100%;
-            grid-template-columns: 240px 1fr;
+            grid-template-columns: 280px 1fr;
             background-color: #252526;
         }
 
-        .sidebar { background-color: #2d2d2d; border-right: 1px solid #3c3c3c; display: flex; flex-direction: column; }
-        .sidebar-header { padding: 16px; border-bottom: 1px solid #3c3c3c; font-size: 11px; color: #858585; }
-        .list-item { padding: 10px 16px; font-size: 13px; color: #cccccc; }
-        .list-item.active { background-color: #37373d; color: #fff; }
+        .sidebar { background-color: #2d2d2d; border-right: 1px solid #3c3c3c; display: flex; flex-direction: column; padding: 12px; gap: 10px; overflow-y: auto;}
+        .sidebar-header { font-size: 11px; color: #858585; text-transform: uppercase; margin-bottom: 4px; }
+        
+        .net-box {
+            background-color: #1e1e1e;
+            border: 1px solid #3c3c3c;
+            padding: 12px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .net-box p { font-size: 11px; color: #858585; line-height: 1.4; }
+        .room-input {
+            width: 100%; padding: 8px; font-size: 12px; background-color: #2d2d2d;
+            border: 1px solid #3c3c3c; color: #9cdcfe; border-radius: 4px; outline: none;
+        }
+        .net-btn {
+            background-color: #007acc; color: #fff; border: none; padding: 8px; font-size: 12px; cursor: pointer; border-radius: 3px; font-weight: bold;
+        }
+        .net-btn:disabled { background-color: #3c3c3c; color: #777; cursor: not-allowed; }
 
-        .workspace { display: flex; flex-direction: column; background-color: #1e1e1e; }
+        .workspace { display: flex; flex-direction: column; background-color: #1e1e1e; overflow: hidden; }
         .workspace-header {
-            padding: 12px 20px; border-bottom: 1px solid #3c3c3c;
+            padding: 12px 16px; border-bottom: 1px solid #3c3c3c;
             display: flex; justify-content: space-between; align-items: center; background-color: #2d2d2d;
         }
-        .workspace-title { font-size: 13px; color: #cccccc; }
+        .workspace-title { font-size: 12px; color: #cccccc; }
         .lock-btn {
             background: none; border: 1px solid #444; padding: 4px 10px;
             border-radius: 3px; font-size: 11px; cursor: pointer; color: #858585;
         }
-        .lock-btn:hover { background-color: #3c3c3c; color: #fff; }
 
-        .content-stream { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-        
+        .content-stream { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
         .entry-row { display: flex; width: 100%; }
         .entry-row.outgoing { justify-content: flex-end; }
         .entry-row.incoming { justify-content: flex-start; }
-
-        .entry-body { max-width: 70%; font-size: 13px; line-height: 1.6; color: #d4d4d4; }
+        .entry-body { max-width: 85%; font-size: 13px; line-height: 1.5; color: #d4d4d4; word-break: break-word; }
         .entry-row.outgoing .entry-body { text-align: right; color: #9cdcfe; }
         .entry-row.incoming .entry-body { color: #ce9178; }
-        .meta-tag { font-size: 11px; color: #6a9955; margin-bottom: 4px; display: block; }
+        .meta-tag { font-size: 10px; color: #6a9955; margin-bottom: 3px; display: block; }
 
-        .input-area { padding: 16px 24px; border-top: 1px solid #3c3c3c; display: flex; gap: 12px; background-color: #1e1e1e; }
+        .input-area { padding: 12px 16px; border-top: 1px solid #3c3c3c; display: flex; gap: 8px; background-color: #1e1e1e; }
         .text-input { flex: 1; padding: 10px; border: 1px solid #3c3c3c; border-radius: 4px; font-size: 13px; outline: none; background-color: #2d2d2d; color: #fff; }
-        .action-btn { background-color: #007acc; color: #fff; border: none; padding: 0 16px; border-radius: 4px; font-size: 13px; cursor: pointer; }
+        .action-btn { background-color: #007acc; color: #fff; border: none; padding: 0 14px; border-radius: 4px; font-size: 13px; cursor: pointer; }
+
+        @media (max-width: 680px) {
+            #app-container { grid-template-columns: 1fr; }
+            .sidebar { border-right: none; border-bottom: 1px solid #3c3c3c; max-height: 160px; }
+        }
     </style>
+    <!-- Public, script-ready library injected automatically -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
 </head>
 <body>
 
     <!-- STAGE 1: THE DISGUISE -->
     <div id="editor-container">
         <div class="editor-header">
-            <div class="tabs">
-                <span class="tab">scratchpad.js</span>
-            </div>
-            <!-- Discreet Shared Room Identifier Config -->
-            <div class="room-setup">
-                <input type="text" id="room-key-input" placeholder="Room Key...">
-                <button id="link-room-btn">Link Room</button>
-            </div>
+            <div class="tabs"><span class="tab">db_config.js</span></div>
         </div>
         <div class="editor-workspace">
-            <div class="line-numbers">1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9</div>
-            <textarea id="codeEditor" class="code-textarea" spellcheck="false" autofocus placeholder="// Type scratch code here..."></textarea>
+            <div id="line-counter" class="line-numbers">1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9<br>10<br>11<br>12</div>
+            <textarea id="codeEditor" class="code-textarea" spellcheck="false" autofocus></textarea>
         </div>
     </div>
 
-    <!-- STAGE 2: HIDDEN GATEWAY -->
+    <!-- STAGE 2: PASSCODE GATEWAY -->
     <div id="lock-screen">
         <div class="auth-container">
             <label for="passcode">/* RUNTIME_AUTH_REQUIRED */</label>
-            <input type="password" id="passcode" class="passcode-input" maxlength="8" placeholder="••••">
+            <input type="password" id="passcode" class="passcode-input" pattern="[0-9]*" inputmode="numeric" maxlength="8" placeholder="••••">
             <div id="error" class="error-msg">Execution signature failed.</div>
         </div>
     </div>
 
-    <!-- STAGE 3: THE DISCREET CHAT ENVIRONMENT -->
+    <!-- STAGE 3: CHAT VIEW & ROOM SETUP -->
     <div id="app-container">
         <aside class="sidebar">
-            <div class="sidebar-header">RUNTIME_REPOSITORIES</div>
-            <div class="list-item active">buffer_stream_01.log</div>
+            <div class="sidebar-header">Session Manager</div>
+            
+            <div class="net-box">
+                <p>Enter a shared Room Key to link with the other user:</p>
+                <input type="text" id="roomKeyInput" class="room-input" placeholder="e.g. shadow_alpha_99">
+                <button class="net-btn" id="connectBtn">Connect Room</button>
+            </div>
+            <div class="net-box" style="margin-top: auto; border: none; padding: 0;">
+                <p style="color: #6a9955;">✓ No external accounts or configurations required.</p>
+            </div>
         </aside>
 
         <main class="workspace">
             <header class="workspace-header">
-                <div class="workspace-title" id="connection-status">Pipeline Offline (No Room Linked)</div>
+                <div class="workspace-title" id="connection-status">Offline (Enter room key on left)</div>
                 <button class="lock-btn" id="manual-lock">Abort Session</button>
             </header>
             
             <div class="content-stream" id="contentStream"></div>
             
             <footer class="input-area">
-                <input type="text" class="text-input" id="messageInput" placeholder="Write to buffer...">
-                <button class="action-btn" id="submitBtn">Execute</button>
+                <input type="text" class="text-input" id="messageInput" placeholder="Write to buffer..." disabled>
+                <button class="action-btn" id="submitBtn" disabled>Execute</button>
             </footer>
         </main>
     </div>
@@ -219,82 +214,57 @@
     <script>
         const SECRET_COMMAND = "// system.initialize.terminal.call()";
         const ACCESS_CODE = "1234";
+        const TEMPLATE_CODE = `/**\n * @file db_config.js\n * @description Production cluster routing setup module.\n */\n\nconst cluster = require('cluster_node');\nconst engine = new cluster.Engine({\n    port: 8080,\n    environment: "production",\n    secureMode: true\n});\n\n`;
 
-        // Element targets
+        // Generate a persistent unique ID for this browser instance
+        const myUUID = 'user_' + Math.random().toString(36).substr(2, 9);
+
         const codeEditor = document.getElementById('codeEditor'), lockScreen = document.getElementById('lock-screen');
         const editorContainer = document.getElementById('editor-container'), appContainer = document.getElementById('app-container');
         const passcodeField = document.getElementById('passcode'), errorMsg = document.getElementById('error');
         const manualLock = document.getElementById('manual-lock'), messageInput = document.getElementById('messageInput');
         const submitBtn = document.getElementById('submitBtn'), contentStream = document.getElementById('contentStream');
-        const roomKeyInput = document.getElementById('room-key-input'), linkRoomBtn = document.getElementById('link-room-btn'), connStatus = document.getElementById('connection-status');
+        const connStatus = document.getElementById('connection-status'), lineCounter = document.getElementById('line-counter');
+        const roomKeyInput = document.getElementById('roomKeyInput'), connectBtn = document.getElementById('connectBtn');
 
-        let pubnub = null;
-        let currentRoom = "";
-        
-        // Generate a persistent unique ID for *this* browser session to distinguish sender vs receiver
-        let myUUID = localStorage.getItem('chat_user_uuid');
-        if (!myUUID) {
-            myUUID = 'usr_' + Math.random().toString(36).substring(2, 9);
-            localStorage.setItem('chat_user_uuid', myUUID);
-        }
+        let client = null;
+        let currentTopic = "";
 
-        // Load historical room chats from local storage on launch
-        window.addEventListener('DOMContentLoaded', loadChatHistory);
-
-        // Room Link Trigger Execution
-        linkRoomBtn.addEventListener('click', () => {
-            const enteredKey = roomKeyInput.value.trim();
-            if (!enteredKey) return;
-
-            currentRoom = "room_" + enteredKey;
-            
-            // Initialize PubNub using free open demo testing keys
-            pubnub = new PubNub({
-                publishKey: 'pub-c-a7a23c89-2f22-494b-bfdf-79df3f548d1d', // Public sandbox key
-                subscribeKey: 'sub-c-5eb712dc-fb0b-4654-a957-cfa29a1b87a8', // Public sandbox key
-                userId: myUUID
-            });
-
-            // Listen for data streams dropping into our specified room name
-            pubnub.addListener({
-                message: function(event) {
-                    const data = event.message;
-                    // If the message UUID is NOT mine, it's incoming
-                    if (data.sender !== myUUID) {
-                        appendMessage(data.text, 'incoming', data.time);
-                        saveMessage(data.text, 'incoming', data.time);
-                    }
-                }
-            });
-
-            // Turn on active tracking on our custom room name
-            pubnub.subscribe({ channels: [currentRoom] });
-
-            connStatus.innerText = `Pipeline Active: [${enteredKey}]`;
-            connStatus.style.color = "#6a9955";
-            linkRoomBtn.innerText = "Linked ✓";
-            linkRoomBtn.style.backgroundColor = "#2d2d2d";
+        window.addEventListener('DOMContentLoaded', () => {
+            codeEditor.value = TEMPLATE_CODE;
+            updateLineNumbers();
+            codeEditor.focus();
+            codeEditor.setSelectionRange(TEMPLATE_CODE.length, TEMPLATE_CODE.length);
         });
 
-        // Monitor inputs in the dummy code window
+        function updateLineNumbers() {
+            const lines = codeEditor.value.split('\n').length;
+            let numbersHtml = '';
+            for(let i = 1; i <= Math.max(lines, 12); i++) { numbersHtml += i + '<br>'; }
+            lineCounter.innerHTML = numbersHtml;
+        }
+
+        /* --- Disguise UI Transitions --- */
         codeEditor.addEventListener('input', function() {
+            updateLineNumbers();
             if (codeEditor.value.includes(SECRET_COMMAND)) {
                 codeEditor.value = codeEditor.value.replace(SECRET_COMMAND, '');
+                updateLineNumbers();
                 editorContainer.style.display = 'none';
                 lockScreen.style.display = 'flex';
                 passcodeField.focus();
             }
         });
 
-        // Verify entry gateway key strings
+        codeEditor.addEventListener('scroll', () => { lineCounter.scrollTop = codeEditor.scrollTop; });
+
         passcodeField.addEventListener('input', function() {
             if (passcodeField.value === ACCESS_CODE) {
                 errorMsg.style.visibility = 'hidden';
                 passcodeField.value = '';
                 lockScreen.style.display = 'none';
                 appContainer.style.display = 'grid';
-                messageInput.focus();
-                contentStream.scrollTop = contentStream.scrollHeight;
+                roomKeyInput.focus();
             } else if (passcodeField.value.length >= ACCESS_CODE.length) {
                 errorMsg.style.visibility = 'visible';
                 passcodeField.value = '';
@@ -302,40 +272,85 @@
         });
 
         function clearView() {
+            if(client) {
+                client.end();
+                client = null;
+            }
             appContainer.style.display = 'none';
             lockScreen.style.display = 'none';
             editorContainer.style.display = 'flex';
-            codeEditor.value = '';
+            codeEditor.value = TEMPLATE_CODE;
+            updateLineNumbers();
+            roomKeyInput.disabled = false;
+            connectBtn.disabled = false;
+            messageInput.disabled = true;
+            submitBtn.disabled = true;
+            connStatus.innerText = "Offline (Enter room key on left)";
+            connStatus.style.color = "#cccccc";
             codeEditor.focus();
         }
 
         manualLock.addEventListener('click', clearView);
         document.addEventListener('visibilitychange', () => { if (document.hidden) clearView(); });
 
-        // Packet processing logic
-        function commitMessage() {
-            const val = messageInput.value.trim();
-            if (val === '' || !pubnub) return;
+        /* --- Zero-Config Public Channel Engine --- */
+        connectBtn.addEventListener('click', () => {
+            const roomKey = roomKeyInput.value.trim().toLowerCase();
+            if(!roomKey) return;
 
-            const timestamp = new Date().toTimeString().split(' ')[0];
-            
-            // Package payload
-            const payload = {
-                text: val,
-                time: timestamp,
-                sender: myUUID
-            };
+            roomKeyInput.disabled = true;
+            connectBtn.disabled = true;
+            connStatus.innerText = "Connecting to pipeline...";
+            connStatus.style.color = "#daa520";
 
-            // Drop payload into the cloud network pipeline
-            pubnub.publish({
-                channel: currentRoom,
-                message: payload
+            // Hash/sanitize the room name slightly to create a clean, dedicated connection string
+            currentTopic = "pub/freechannel/chat/" + btoa(roomKey).replace(/=/g, "");
+
+            // Connects to a completely free, open public broker ecosystem
+            client = mqtt.connect('wss://broker.hivemq.com:8000/mqtt');
+
+            client.on('connect', () => {
+                client.subscribe(currentTopic, (err) => {
+                    if (!err) {
+                        connStatus.innerText = `Connected to Room: ${roomKey}`;
+                        connStatus.style.color = "#6a9955";
+                        messageInput.disabled = false;
+                        submitBtn.disabled = false;
+                        messageInput.focus();
+                    }
+                });
             });
 
-            // Display and save locally instantly
+            client.on('message', (topic, message) => {
+                try {
+                    const payload = JSON.parse(message.toString());
+                    // Ignore our own broadcast reflections
+                    if (payload.sender !== myUUID) {
+                        appendMessage(payload.text, 'incoming', payload.time);
+                    }
+                } catch(e) {}
+            });
+
+            client.on('error', () => {
+                connStatus.innerText = "Connection failed. Retrying...";
+                connStatus.style.color = "#f44747";
+            });
+        });
+
+        /* --- Message Delivery Engine --- */
+        function commitMessage() {
+            const val = messageInput.value.trim();
+            if (val === '' || !client || !client.connected) return;
+
+            const timestamp = new Date().toTimeString().split(' ')[0];
+            const payload = {
+                sender: myUUID,
+                text: val,
+                time: timestamp
+            };
+
+            client.publish(currentTopic, JSON.stringify(payload));
             appendMessage(val, 'outgoing', timestamp);
-            saveMessage(val, 'outgoing', timestamp);
-            
             messageInput.value = '';
         }
 
@@ -351,21 +366,7 @@
             
             row.appendChild(body);
             contentStream.appendChild(row);
-            contentStream.scrollTop = contentStream.scrollHeight;
-        }
-
-        // Local Memory Engines
-        function saveMessage(text, direction, time) {
-            let history = JSON.parse(localStorage.getItem('room_chat_history')) || [];
-            history.push({ text, direction, time });
-            localStorage.setItem('room_chat_history', JSON.stringify(history));
-        }
-
-        function loadChatHistory() {
-            let history = JSON.parse(localStorage.getItem('room_chat_history')) || [];
-            history.forEach(msg => {
-                appendMessage(msg.text, msg.direction, msg.time);
-            });
+            setTimeout(() => { contentStream.scrollTop = contentStream.scrollHeight; }, 30);
         }
 
         submitBtn.addEventListener('click', commitMessage);
