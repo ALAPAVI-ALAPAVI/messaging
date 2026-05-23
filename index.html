@@ -123,6 +123,7 @@
 
         let ws = null;
         let roomChannel = "";
+        let currentRoomKey = "";
 
         // Detect engine context instantly to adapt protocols
         const isMobileFile = window.location.protocol === 'file:' && /Mobi|Android|iPhone/i.test(navigator.userAgent);
@@ -183,21 +184,59 @@
             submitBtn.disabled = true;
             connStatus.innerText = "Offline (Enter room key on left)";
             connStatus.style.color = "#cccccc";
+            contentStream.innerHTML = ""; // Clear active stream view
+            currentRoomKey = "";
             codeEditor.focus();
         }
 
         manualLock.addEventListener('click', clearView);
         document.addEventListener('visibilitychange', () => { if (document.hidden) clearView(); });
 
+        /* --- Storage Management Engine --- */
+        function getStorageKey(room) {
+            return `msg_log_v1_${room}`;
+        }
+
+        function saveMessageToLocal(text, direction, time) {
+            if (!currentRoomKey) return;
+            const key = getStorageKey(currentRoomKey);
+            let currentLogs = [];
+            try {
+                currentLogs = JSON.parse(localStorage.getItem(key)) || [];
+            } catch (e) {
+                currentLogs = [];
+            }
+            currentLogs.push({ text, direction, time });
+            localStorage.setItem(key, JSON.stringify(currentLogs));
+        }
+
+        function loadRoomHistory(room) {
+            contentStream.innerHTML = ""; // Clear container
+            const key = getStorageKey(room);
+            let savedLogs = [];
+            try {
+                savedLogs = JSON.parse(localStorage.getItem(key)) || [];
+            } catch (e) {
+                savedLogs = [];
+            }
+            savedLogs.forEach(log => {
+                appendMessageToDOM(log.text, log.direction, log.time);
+            });
+        }
+
         /* --- Universal Zero-Config WebSocket Pipeline --- */
         connectBtn.addEventListener('click', () => {
             const roomKey = roomKeyInput.value.trim().toLowerCase();
             if(!roomKey) return;
 
+            currentRoomKey = roomKey;
             roomKeyInput.disabled = true;
             connectBtn.disabled = true;
             connStatus.innerText = "Opening secure link...";
             connStatus.style.color = "#daa520";
+
+            // Instantly restore localized historical records if they exist
+            loadRoomHistory(currentRoomKey);
 
             roomChannel = btoa(roomKey).replace(/=/g, "");
 
@@ -257,7 +296,8 @@
                 try {
                     const payload = JSON.parse(rawStr);
                     if (payload.sender !== myUUID) {
-                        appendMessage(payload.text, 'incoming', payload.time);
+                        appendMessageToDOM(payload.text, 'incoming', payload.time);
+                        saveMessageToLocal(payload.text, 'incoming', payload.time);
                     }
                 } catch(e) {}
             }
@@ -280,11 +320,12 @@
             ]);
 
             ws.send(packet);
-            appendMessage(val, 'outgoing', timestamp);
+            appendMessageToDOM(val, 'outgoing', timestamp);
+            saveMessageToLocal(val, 'outgoing', timestamp);
             messageInput.value = '';
         }
 
-        function appendMessage(text, direction, time) {
+        function appendMessageToDOM(text, direction, time) {
             const row = document.createElement('div');
             row.classList.add('entry-row', direction);
             const body = document.createElement('div');
@@ -301,3 +342,4 @@
     </script>
 </body>
 </html>
+
